@@ -711,8 +711,6 @@ class IPCHandler(threading.Thread):
                 startDecode = time.time()
                 m_activePipeline, m_pipeline = bytesToPipeline(pipelinesBytes)
                 with self.pipelineLock:
-                    # global activePipeline
-                    # global pipelines
                     activePipeline = m_activePipeline
                     pipelines[activePipeline] = m_pipeline
                 if (m_restartPipeline == b'\01'):
@@ -951,7 +949,6 @@ class Logger(threading.Thread):
                 self.savedData = True
             
             time.sleep(0.001)
-
 
 if __name__ == '__main__':
     logger = Logger(loggingQueue)

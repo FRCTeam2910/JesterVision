@@ -379,54 +379,14 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/Pipeline', methods=['GET', 'POST'])
+@app.route('/Pipeline', methods=['GET'])
 def handlePipelineRequest():
-    if request.method == 'GET':
-        global pipelines
-        global activePipeline
-        pipeline = pipelines[activePipeline].copy()
-        if (pipeline['objectPoints'] is not None):
-            pipeline['objectPoints'] = pipeline['objectPoints'].tolist()
-        return jsonify(pipelines[activePipeline])
-    elif request.method == 'POST':
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            try:
-                socketio.emit('newPipelineVals', file.read(), namespace='/ws')
-            except:
-                flash('Error processing pipeline')
-                return redirect(request.url)
-            
-            return redirect(url_for('index'))
-
-@app.route('/TargetModel', methods=['POST'])
-def handleTargetModel():
-    if 'file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-    file = request.files['file']
-    # if user does not select file, browser also
-    # submit an empty part without filename
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        try:
-            socketio.emit('updateObjectPoints', file.read(), namespace='/ws')
-        except:
-            flash('Error processing target model')
-            return redirect(request.url)
-        return redirect(url_for('index'))
+    global pipelines
+    global activePipeline
+    pipeline = pipelines[activePipeline].copy()
+    if (pipeline['objectPoints'] is not None):
+        pipeline['objectPoints'] = pipeline['objectPoints'].tolist()
+    return jsonify(pipelines[activePipeline])
 
 @app.route('/CameraConfig', methods=['POST'])
 def handle_camera_config_file():
@@ -464,45 +424,43 @@ def onConnect():
 # event handler for updating existing pipelines and adding new ones
 @socketio.on('updatePipelineVals', namespace='/ws')
 def updatePipeline(data):
-    pipeline = json.loads(data)
-    newVals = pipeline['vals']
+    data = json.loads(data)
+    newPipelineVals = data['vals']
 
-    # Check if we have new pipeline vals that need to be saved
+    # Check if we have new pipeline vals that need to be saved to the disk
     # Copy the vals we have stored to see if there are any differences
     global pipelines
     global activePipeline
-    vals = pipelines[activePipeline].copy()
+    currentVals = pipelines[activePipeline].copy()
 
     # Check if there are any object points to convert to a list
-    if (vals['objectPoints'] is not None):
-        vals['objectPoints'] = vals['objectPoints'].tolist()
+    if (currentVals['objectPoints'] is not None):
+        currentVals['objectPoints'] = currentVals['objectPoints'].tolist()
 
-    for val in vals:
-        if (type(vals[val]) == tuple):
-            vals[val] = list(vals[val])
+    for val in currentVals:
+        if (type(currentVals[val]) == tuple):
+            currentVals[val] = list(currentVals[val])
 
     # Now we can compare to see if we have new values
-    if not (vals == newVals):
+    if not (currentVals == newPipelineVals):
         # If they are different, trigger the update event to save the new values to the disk
         savePipelinesEvent.set()
 
+    # Now, we update the gobal copy of the pipeline
     # Convert the object points to a numpy array if we need to
-    if (newVals['objectPoints'] is not None):
-        newVals['objectPoints'] = np.array(newVals['objectPoints'], dtype=np.float32)
+    if (newPipelineVals['objectPoints'] is not None):
+        newPipelineVals['objectPoints'] = np.array(newPipelineVals['objectPoints'], dtype=np.float32)
 
     # Convert all lists to tuples
-    for val in newVals:
-        if (type(newVals[val]) == list):
-            newVals[val] = tuple(newVals[val])
-
-    # if (newVals['objectPoints'] is not None):
-    #     newVals['objectPoints'] = np.array(newVals['objectPoints'], dtype=np.float32)
+    for val in newPipelineVals:
+        if (type(newPipelineVals[val]) == list):
+            newPipelineVals[val] = tuple(newPipelineVals[val])
 
     # Acquire the lock, update our pipelines
     global pipelineLock
     with pipelineLock:
-        activePipeline = pipeline['activePipeline']
-        pipelines[activePipeline] = newVals
+        activePipeline = data['activePipeline']
+        pipelines[activePipeline] = newPipelineVals
 
     # Send the pipeline results back to the client
     with resultsLock:

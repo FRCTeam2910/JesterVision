@@ -290,15 +290,7 @@ function activePipelineNameEntryCallback(value) {
   pipelines[activePipeline]['name'] = value;
   
   var pipelineSelect = document.getElementById('PipelineChooser');
-  // pipelineSelect.remove(pipelineSelect.selectedIndex);
   pipelineSelect.options[activePipeline].text = value;
-  
-  // var newOption = document.createElement('option');
-  // newOption.appendChild(document.createTextNode(newName));
-  // newOption.value = newName;
-  // document.getElementById("PipelineChooser").appendChild(newOption);
-
-  // document.getElementById("PipelineChooser").value = newName;
 }
 
 // Handlers for camera setup tab
