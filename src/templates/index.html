@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<head>
+    <title>Flask SocketIO Test</title>
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/style-index.css') }}">
+    <script src="/static/javascript/socket.io.js"></script>
+    <script type="text/javascript">
+        var networkValues = {{ data|tojson }};
+    </script>
+    <!-- <script src="{{url_for('static', filename='javascript/script-index.js')}}"></script> -->
+</head>
+<body>
+    <div id="Wrapper">
+        <!-- Sidebar to chose between PipelineConfiguratorTab and SettingsTab -->
+        <div id="Sidebar" class="tab">
+            <button id="PipelineConfiguratorTabButton" class="tablinks" onclick="changeTab(event, 'PipelineConfiguratorTab')">P</button>
+            <button id="SettingsTabButton" class="tablinks" onclick="changeTab(event, 'SettingsTab')">S</button>
+        </div>
+
+        <!-- Tab definitions -->
+        <div id="PipelineConfiguratorTab" class="tabcontent">
+            <div id="TopBar">
+                <label class="topbar" for="PipelineChooser">Pipeline:</label>
+                <input class="topbar" id="ActivePipelineNameEntry" type="text" onchange="activePipelineNameEntryCallback(this.value)" />
+                <select class="topbar" id="PipelineChooser" name="PipelineChooser" onchange="pipelineChooserCallback()"></select>
+                <form class="topbar" action="/Pipeline" method=get>
+                    <button type="submit">Download Pipeline</button>
+                </form>
+                <label for="uploadPipeline">Upload Pipeline</label>
+                <input type="file" id="uploadPipeline" name="uploadPipeline" onchange="uploadPipelineCallback(this.files)">
+                <!-- <form class="topbar" action="/Pipeline" method=post enctype=multipart/form-data>
+                    <p>Upload Pipeline</p>
+                    <input type=file name=file>
+                    <input type=submit value=Upload>
+                </form> -->
+                <p class="topbar" name="CameraConfigName"></p>
+                <form class="topbar" action="/CameraConfig" method=post enctype=multipart/form-data>
+                    <p>Upload Camera Config</p>
+                    <input type=file name=file>
+                    <input type=submit value=Upload>
+                </form>
+            </div>
+
+            <div id="StageSelector" class="_tab">
+                <button id="CameraSetupTabButton" class="_tablinks" onclick="changePipelineStage(event, 'CameraSetupTab')">Camera Setup</button>
+                <button id="ThresholdingTabButton" class="_tablinks" onclick="changePipelineStage(event, 'ThresholdingTab')">Thresholding</button>
+                <button id="ContourFilteringTabButton" class="_tablinks" onclick="changePipelineStage(event, 'ContourFilteringTab')">Contour Filtering</button>
+                <button id="TargetFilteringTabButton" class="_tablinks" onclick="changePipelineStage(event, 'TargetFilteringTab')">Target Filtering</button>
+                <button id="PoseEstimationTabButton" class="_tablinks" onclick="changePipelineStage(event, 'PoseEstimationTab')">Pose Estimation</button>
+            </div>
+            
+            <div id="CameraSetupTab" class="_tabcontent">
+                <div class="CameraSetupSubTab" id="SensorSettingsWrapper">
+                    <h2 class="PipelineTabSubHeader">Sensor Settings</h2>
+                    <div id="ShutterSpeedEntryField">
+                        <p id="ShutterSpeedEntryLabel">Shutter Speed</p>
+                        <input id="ShutterSpeedEntry" type="text" onchange="shutterSpeedCallback(this.value)" />
+                        <input id="ShutterSpeedScale" type="range" min="2" max="20" step="1" oninput="shutterSpeedCallback(this.value)" />
+                    </div>
+    
+                    <div id="AWBField">
+                        <div id="RedBalanceEntryField">
+                            <p id="RedBalanceEntryLabel">Red Balance</p>
+                            <input id="RedBalanceEntry" type="text" onchange="redBalanceCallback(this.value)" />
+                            <input id="RedBalanceScale" type="range" min="0.0" max="8.0" step="0.01" oninput="redBalanceCallback(this.value)" />
+                        </div>
+    
+                        <div id="BlueBalanceEntryField">
+                            <p id="BlueBalanceEntryLabel">Blue Balance</p>
+                            <input id="BlueBalanceEntry" type="text" onchange="blueBalanceCallback(this.value)" />
+                            <input id="BlueBalanceScale" type="range" min="0.0" max="8.0" step=0.01 oninput="blueBalanceCallback(this.value)" />
+                        </div>
+
+                        <div id="ISOEntryField">
+                                <p id="ISOEntryLabel">ISO</p>
+                                <input id="ISOEntry" type="text" onchange="isoCallback(this.value)" />
+                                <input id="ISOScale" type="range" min="0" max="1600" step=1 oninput="isoCallback(this.value)" />
+                            </div>
+                    </div>
+                </div>
+
+                <div class="CameraSetupSubTab" id="TransformsAndFiltersWrapper">
+                    <h2>Transformations and Filters</h2>
+                    <div id="FlipImgCheckboxField">
+                        <label for="FlipImgCheckbox">Flip Frame</label>
+                        <input type="checkbox" id="FlipImgCheckbox" name="FlipImgCheckbox" onchange="flipImgCheckboxCallback()" />
+                    </div>
+
+                    <div id="EnableLEDsCheckboxField">
+                        <label for="EnableLEDsCheckbox">Enable LED's</label>
+                        <input type="checkbox" id="EnableLEDsCheckbox" name="EnableLEDsCheckbox" onchange="enableLEDsCheckboxCallback()" />
+                    </div>
+                </div>
+            </div>
+
+            <div id="ThresholdingTab" class="_tabcontent">
+                <div id="ThresholdingDiv" class="ThresholdingSubTab">
+                    <h2 class="PipelineTabSubHeader">Thresholding Values</h2>
+                    
+                    <div id="LowHueFrame">
+                        <label for="LowHueEntry">Low Hue</label>
+                        <input type="text" id="LowHueEntry" class="ThresholdingEntry" name="LowHueEntry" onchange="lowHueCallback(this.value)" />
+                        <input type="range" id="LowHueScale" min="0" max="180" value="0" step="1" oninput="lowHueCallback(this.value)" />
+                    </div>
+                    <div id="HighHueFrame">
+                        <label for="HighHueEntry">High Hue</label>
+                        <input type="text" id="HighHueEntry" class="ThresholdingEntry" name="HighHueEntry" onchange="highHueCallback(this.value)" />
+                        <input type="range" id="HighHueScale" min="0" max="180" value="180" step="1" oninput="highHueCallback(this.value)" />
+                    </div>
+
+                    <div id="LowSaturationFrame">
+                        <label for="LowSaturationEntry">Low Saturation</label>
+                        <input type="text" id="LowSaturationEntry" class="ThresholdingEntry" name="LowSaturationEntry" onchange="lowSaturationCallback(this.value)" />
+                        <input type="range" id="LowSaturationScale" min="0" max="255" value="0" step="1" oninput="lowSaturationCallback(this.value)" />
+                    </div>
+                    <div id="HighSaturationFrame">
+                        <label for="HighSaturationEntry">High Saturation</label>
+                        <input type="text" id="HighSaturationEntry" class="ThresholdingEntry" name="HighSaturationEntry" onchange="highSaturationCallback(this.value)" />
+                        <input type="range" id="HighSaturationScale" min="0" max="255" value="255" step="1" oninput="highSaturationCallback(this.value)" />
+                    </div>
+
+                    <div id="LowValueFrame">
+                            <label for="LowValueEntry">Low Value</label>
+                            <input type="text" id="LowValueEntry" class="ThresholdingEntry" name="LowValueEntry" onchange="lowValueCallback(this.value)" />
+                            <input type="range" id="LowValueScale" min="0" max="255" value="0" step="1" oninput="lowValueCallback(this.value)" />
+                    </div>
+                    <div id="HighValueFrame">
+                        <label for="HighValueEntry">High Value</label>
+                        <input type="text" id="HighValueEntry" class="ThresholdingEntry" name="HighValueEntry" onchange="highValueCallback(this.value)" />
+                        <input type="range" id="HighValueScale" min="0" max="255" value="255" step="1" oninput="highValueCallback(this.value)" />
+                    </div>
+                </div>
+
+                <div id="ErosionDiv" class="ThresholdingSubTab">
+                    <h2 id="ErosionHeader">Erosion</h2>
+                    <label for="EnableErosionCheckbox">Erode</label>
+                    <input type="checkbox" id="EnableErosionCheckbox" name="EnableErosionCheckbox" onchange="enableErosionCheckboxCallback()" />
+
+                    <div id="ErosionIterationsDiv">
+                        <label for="ErosionIterationsEntry">Iterations</label>
+                        <input type="text" id="ErosionIterationsEntry" class="ThresholdingEntry" name="ErosionIterationsEntry" onchange="erosionIterationsCallback(this.value)" />
+                        <input type="range" id="ErosionIterationsScale" min="1" max="5" value="1" step="1" oninput="erosionIterationsCallback(this.value)" />
+                    </div>
+
+                    <div id="ErosionAnchorDiv">
+                        <h4 id="ErosionAnchorHeader">Erosion Anchor</h4>
+                        <div id="ErosionAnchorXDiv">
+                            <label for="ErosionAnchorXEntry">Anchor X</label>
+                            <input type="text" id="ErosionAnchorXEntry" class="ThresholdingEntry" name="ErosionAnchorXEntry" onchange="erosionAnchorXCallback(this.value)" />
+                            <input type="range" id="ErosionAnchorXScale" value="-1" step="1" oninput="erosionAnchorXCallback(this.value)" />
+                        </div>
+
+                        <div id="ErosionAnchorYDiv">
+                            <label for="ErosionAnchorYEntry">Anchor Y</label>
+                            <input type="text" id="ErosionAnchorYEntry" class="ThresholdingEntry" name="ErosionAnchorYEntry" onchange="erosionAnchorYCallback(this.value)" />
+                            <input type="range" id="ErosionAnchorYScale" value="-1" step="1" oninput="erosionAnchorYCallback(this.value)" />
+                        </div>
+                    </div>
+
+                    <label for="ErosionKernelShape">Kernel Shape</label>
+                    <select id="ErosionKernelShape" name="ErosionKernelShape" onclick="erosionKernelShapeCallback()">
+                        <option value="rectangle">Rectangle</option>
+                        <option value="ellipse">Ellipse</option>
+                        <option value="cross">Cross</option>
+                    </select>
+
+                    <div id="ErosionKernelSizeDiv">
+                        <h4 id="ErosionKernelSizeHeader">Kernel Size</h4>
+                        <div id="ErosionKernelWidthDiv">
+                            <label for="ErosionKernelWidthEntry">Kernel Width</label>
+                            <input type="text" id="ErosionKernelWidthEntry" class="ThresholdingEntry" name="ErosionKernelWidthEntry" onchange="erosionKernelWidthCallback(this.value, NaN, NaN)" />
+                            <input type="range" id="ErosionKernelWidthScale" min="3" max="11" value="3" step="2" oninput="erosionKernelWidthCallback(this.value, NaN, NaN)" />
+                        </div>
+
+                        <div id="ErosionKernelHeightDiv">
+                            <label for="ErosionKernelHeightEntry">Kernel Height</label>
+                            <input type="text" id="ErosionKernelHeightEntry" class="ThresholdingEntry" name="ErosionKernelHeightEntry" onchange="erosionKernelHeightCallback(this.value, NaN, NaN)" />
+                            <input type="range" id="ErosionKernelHeightScale" min="3" max="11" value="3" step="2" oninput="erosionKernelHeightCallback(this.value, NaN, NaN)" />
+                        </div>
+                    </div>
+
+                    <div id="ErosionKernelAnchorDiv">
+                        <h4 id="ErosionKernelAnchorHeader">Kernel Anchor</h4>
+                        <div id="ErosionKernelAnchorXDiv">
+                            <label for="ErosionKernelAnchorXEntry">Kernel Anchor X</label>
+                            <input type="text" id="ErosionKernelAnchorXEntry" class="ThresholdingEntry" name="ErosionKernelAnchorXEntry" onchange="erosionKernelAnchorXCallback(this.value)" />
+                            <input type="range" id="ErosionKernelAnchorXScale" value="-1" step="1" oninput="erosionKernelAnchorXCallback(this.value)" />
+                        </div>
+
+                        <div id="ErosionKernelAnchorYDiv">
+                            <label for="ErosionKernelAnchorYEntry">Kernel Anchor Y</label>
+                            <input type="text" id="ErosionKernelAnchorYEntry" class="ThresholdingEntry" name="ErosionKernelAnchorYEntry" onchange="erosionKernelAnchorYCallback(this.value)" />
+                            <input type="range" id="ErosionKernelAnchorYScale" value="-1" step="1" oninput="erosionKernelAnchorYCallback(this.value)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div id="DilationDiv" class="ThresholdingSubTab">
+                    <h2 id="DialationHeader">Dilation</h2>
+                    <label for="EnableDilationCheckbox">Dilate</label>
+                    <input type="checkbox" id="EnableDilationCheckbox" name="EnableDilationCheckbox" onchange="enableDilationCheckboxCallback()" />
+
+                    <div id="DilationIterationsDiv">
+                        <label for="DilationIterationsEntry">Iterations</label>
+                        <input type="text" id="DilationIterationsEntry" class="ThresholdingEntry" name="DilationIterationsEntry" onchange="dilationIterationsCallback(this.value)" />
+                        <input type="range" id="DilationIterationsScale" min="1" max="5" value="1" step="1" oninput="dilationIterationsCallback(this.value)" />
+                    </div>
+
+                    <div id="DilationAnchorDiv">
+                        <h4 id="DilationAnchorHeader">Dilation Anchor</h4>
+                        <div id="DilationAnchorXDiv">
+                            <label for="DilationAnchorXEntry">Anchor X</label>
+                            <input type="text" id="DilationAnchorXEntry" class="ThresholdingEntry" name="DilationAnchorXEntry" onchange="dilationAnchorXCallback(this.value)" />
+                            <input type="range" id="DilationAnchorXScale" min="-1" max="10" value="-1" step="1" oninput="dilationAnchorXCallback(this.value)" />
+                        </div>
+
+                        <div id="DilationAnchorYDiv">
+                            <label for="DilationAnchorYEntry">Anchor Y</label>
+                            <input type="text" id="DilationAnchorYEntry" class="ThresholdingEntry" name="DilationAnchorYEntry" onchange="dilationAnchorYCallback(this.value)" />
+                            <input type="range" id="DilationAnchorYScale" min="-1" max="10" value="-1" step="1" oninput="dilationAnchorYCallback(this.value)" />
+                        </div>
+                    </div>
+
+                    <label for="DilationKernelShape">Kernel Shape</label>
+                    <select id="DilationKernelShape" name="DilationKernelShape" onclick="dilationKernelShapeCallback()">
+                        <option value="rectangle">Rectangle</option>
+                        <option value="ellipse">Ellipse</option>
+                        <option value="cross">Cross</option>
+                    </select>
+
+                    <div id="DilationKernelSizeDiv">
+                        <h4 id="DilationKernelSizeHeader">Kernel Size</h4>
+                        <div id="DilationKernelWidthDiv">
+                            <label for="DilationKernelWidthEntry">Kernel Width</label>
+                            <input type="text" id="DilationKernelWidthEntry" class="ThresholdingEntry" name="DilationKernelWidthEntry" onchange="dilationKernelWidthCallback(this.value)" />
+                            <input type="range" id="DilationKernelWidthScale" min="3" max="11" value="3" step="2" oninput="dilationKernelWidthCallback(this.value)" />
+                        </div>
+
+                        <div id="DilationKernelHeightDiv">
+                            <label for="DilationKernelHeightEntry">Kernel Height</label>
+                            <input type="text" id="DilationKernelHeightEntry" class="ThresholdingEntry" name="DilationKernelHeightEntry"  onchange="dilationKernelHeightCallback(this.value)"/>
+                            <input type="range" id="DilationKernelHeightScale" min="3" max="11" value="3" step="2" oninput="dilationKernelHeightCallback(this.value)" />
+                        </div>
+                    </div>
+
+                    <div id="DilationKernelAnchorDiv">
+                        <h4 id="DilationKernelAnchorHeader">Kernel Anchor</h4>
+                        <div id="DilationKernelAnchorXDiv">
+                            <label for="DilationKernelAnchorXEntry">Kernel Anchor X</label>
+                            <input type="text" id="DilationKernelAnchorXEntry" class="ThresholdingEntry" name="DilationKernelAnchorXEntry" onchange="dilationKernelAnchorXCallback(this.value)" />
+                            <input type="range" id="DilationKernelAnchorXScale" min="-1" max="10" value="-1" step="1" oninput="dilationKernelAnchorXCallback(this.value)" />
+                        </div>
+
+                        <div id="DilationKernelAnchorYDiv">
+                            <label for="DilationKernelAnchorYEntry">Kernel Anchor Y</label>
+                            <input type="text" id="DilationKernelAnchorYEntry" class="ThresholdingEntry" name="DilationKernelAnchorYEntry" onchange="dilationKernelAnchorYCallback(this.value)" />
+                            <input type="range" id="DilationKernelAnchorYScale" min="-1" max="10" value="-1" step="1" oninput="dilationKernelAnchorYCallback(this.value)" />
+                        </div>
+                    </div>
+                </div>                
+            </div>
+
+            <div id="ContourFilteringTab" class="_tabcontent">
+                <h2>Contour Filters</h2>
+                <div id="ContourFilteringDiv">
+                    <div id="LowContourAreaFrame">
+                        <label for="LowContourAreaEntry">Low Contour Area</label>
+                        <input type="text" id="LowContourAreaEntry" class="ThresholdingEntry" name="LowContourAreaEntry" onchange="lowContourAreaCallback(this.value)" />
+                        <input type="range" id="LowContourAreaScale" min="0.0" max="1.0" value="0.0" step="0.01" oninput="lowContourAreaCallback(this.value)" />
+                    </div>
+                    <div id="HighContourAreaFrame">
+                        <label for="HighContourAreaEntry">High Contour Area</label>
+                        <input type="text" id="HighContourAreaEntry" class="ThresholdingEntry" name="HighContourAreaEntry" onchange="highContourAreaCallback(this.value)" />
+                        <input type="range" id="HighContourAreaScale" min="0.0" max="1.0" value="1.0" step="0.01" oninput="highContourAreaCallback(this.value)" />
+                    </div>
+
+                    <div id="LowContourFullnessFrame">
+                        <label for="LowContourFullnessEntry">Low Contour Fullness</label>
+                        <input type="text" id="LowContourFullnessEntry" class="ThresholdingEntry" name="LowContourFullnessEntry" onchange="lowContourFullnessCallback(this.value)" />
+                        <input type="range" id="LowContourFullnessScale" min="0.0" max="1.0" value="0.0" step="0.01" oninput="lowContourFullnessCallback(this.value)" />
+                    </div>
+                    <div id="HighContourFullnessFrame">
+                        <label for="HighContourFullnessEntry">High Contour Fullness</label>
+                        <input type="text" id="HighContourFullnessEntry" class="ThresholdingEntry" name="HighContourFullnessEntry" onchange="highContourFullnessCallback(this.value)" />
+                        <input type="range" id="HighContourFullnessScale" min="0.0" max="1.0" value="1.0" step="0.01" oninput="highContourFullnessCallback(this.value)" />
+                    </div>
+
+                    <div id="LowContourAspectRatio">
+                        <label for="LowContourAspectRatio">Low Contour Aspect Ratio</label>
+                        <input type="text" id="LowContourAspectRatioEntry" class="ThresholdingEntry" name="LowContourAspectRatioEntry" onchange="lowContourAspectRatioCallback(this.value)" />
+                        <input type="range" id="LowContourAspectRatioScale" min="0.0" max="10.0" value="0.0" step="0.01" oninput="lowContourAspectRatioCallback(this.value)" />
+                    </div>
+                    <div id="HighContourAspectRatioFrame">
+                        <label for="HighContourAspectRatioEntry">High Contour Aspect Ratio</label>
+                        <input type="text" id="HighContourAspectRatioEntry" class="ThresholdingEntry" name="HighContourAspectRatioEntry" onchange="highContourAspectRatioCallback(this.value)" />
+                        <input type="range" id="HighContourAspectRatioScale" min="0.0" max="10.0" value="10.0" step="0.01" oninput="highContourAspectRatioCallback(this.value)" />
+                    </div>
+                    <div id="ConvexHullDiv">
+                        <label for="ContourConvexHullCheckbox">Use Convex Hull</label>
+                        <input type="checkbox" id="ContourConvexHullCheckbox" name="ContourConvexHullCheckbox" onchange="contourConvexHullCheckboxCallback()" />
+                    </div>
+                    <div id="ContourCornersFrame">
+                        <label for="ContourCornersEntry">Contour Corners</label>
+                        <input type="text" id="ContourCornersEntry" class="ThresholdingEntry" name="ContourCornersEntry" onchange="contourCornersCallback(this.value)" />
+                    </div>
+                </div>
+
+                <label for="ContourSortingMode">Sorting Mode</label>
+                <select id="ContourSortingMode" onclick="contourSortingModeCallback()">
+                    <option value="left">Left to Right</option>
+                    <option value="right">Right to Left</option>
+                    <option value="center">Center Outwards</option>
+                    <option value="top">Top to Bottom</option>
+                    <option value="bottom">Bottom to Top</option>
+                </select>
+            </div>
+
+            <div id="TargetFilteringTab" class="_tabcontent">
+                <h2>Contour Pairing</h2>
+                <label for="EnableContourPairingCheckbox">Pair Contours</label>
+                <input type="checkbox" id="EnableContourPairingCheckbox" name="EnableContourPairingCheckbox" onclick="enableContourPairingCheckboxCallback()" />
+
+                <label for="ContourIntersectionLocation">Intersection Location</label>
+                <select id="ContourIntersectionLocation" name="ContourIntersectionLocation" onclick="contourIntersectionLocationCallback()">
+                    <option value="neither">Neither</option>
+                    <option value="above">Above</option>
+                    <option value="below">Below</option>
+                    <option value="right">Right</option>
+                    <option value="left">Left</option>
+                </select>
+
+                <h2>Target Filters</h2>
+                <div id="TargetFilteringDiv">
+                    <div id="LowTargetAreaFrame">
+                        <label for="LowTargetAreaEntry">Low Target Area</label>
+                        <input type="text" id="LowTargetAreaEntry" class="ThresholdingEntry" name="LowTargetAreaEntry" onchange="lowTargetAreaCallback(this.value)" />
+                        <input type="range" id="LowTargetAreaScale" min="0.0" max="1.0" value="0.0" step="0.01" oninput="lowTargetAreaCallback(this.value)" />
+                    </div>
+                    <div id="HighTargetAreaFrame">
+                        <label for="HighTargetAreaEntry">High Target Area</label>
+                        <input type="text" id="HighTargetAreaEntry" class="ThresholdingEntry" name="HighTargetAreaEntry" onchange="highTargetAreaCallback(this.value)" />
+                        <input type="range" id="HighTargetAreaScale" min="0.0" max="1.0" value="1.0" step="0.01" oninput="highTargetAreaCallback(this.value)" />
+                    </div>
+
+                    <div id="LowTargetFullnessFrame">
+                        <label for="LowTargetFullnessEntry">Low Target Fullness</label>
+                        <input type="text" id="LowTargetFullnessEntry" class="ThresholdingEntry" name="LowTargetFullnessEntry" onchange="lowTargetFullnessCallback(this.value)" />
+                        <input type="range" id="LowTargetFullnessScale" min="0.0" max="1.0" value="0.0" step="0.01" oninput="lowTargetFullnessCallback(this.value)" />
+                    </div>
+                    <div id="HighTargetFullnessFrame">
+                        <label for="HighTargetFullnessEntry">High Target Fullness</label>
+                        <input type="text" id="HighTargetFullnessEntry" class="ThresholdingEntry" name="HighTargetFullnessEntry" onchange="highTargetFullnessCallback(this.value)" />
+                        <input type="range" id="HighTargetFullnessScale" min="0.0" max="1.0" value="1.0" step="0.01" oninput="highTargetFullnessCallback(this.value)" />
+                    </div>
+
+                    <div id="LowTargetAspectRatioFrame">
+                        <label for="LowTargetAspectRatioEntry">Low Target Aspect Ratio</label>
+                        <input type="text" id="LowTargetAspectRatioEntry" class="ThresholdingEntry" name="LowTargetAspectRatioEntry" onchange="lowTargetAspectRatioCallback(this.value)" />
+                        <input type="range" id="LowTargetAspectRatioScale" min="0.0" max="10.0" value="0.0" step="0.01" oninput="lowTargetAspectRatioCallback(this.value)" />
+                    </div>
+                    <div id="HighTargetAspectRatioFrame">
+                        <label for="HighTargetAspectRatioEntry">High Target Aspect Ratio</label>
+                        <input type="text" id="HighTargetAspectRatioEntry" class="ThresholdingEntry" name="HighTargetAspectRatioEntry" onchange="highTargetAspectRatioCallback(this.value)" />
+                        <input type="range" id="HighTargetAspectRatioScale" min="0.0" max="10.0" value="10.0" step="0.01" oninput="highTargetAspectRatioCallback(this.value)" />
+                    </div>
+                    <div id="TargetHullDiv">
+                        <label for="TargetConvexHullCheckbox">Use Convex Hull</label>
+                        <input type="checkbox" id="TargetConvexHullCheckbox" name="TargetConvexHullCheckbox" onchange="targetConvexHullCheckboxCallback()" />
+                    </div>
+                    <div id="TargetCornersFrame">
+                        <label for="TargetCornersEntry">Target Corners</label>
+                        <input type="text" id="TargetCornersEntry" class="ThresholdingEntry" name="TargetCornersEntry" onchange="targetCornersCallback(this.value)" />
+                    </div>
+                </div>
+
+                <label for="TargetSortingMode">Sorting Mode</label>
+                <select id="TargetSortingMode" onclick="targetSortingModeCallback()">
+                    <option value="left">Left to Right</option>
+                    <option value="right">Right to Left</option>
+                    <option value="center">Center Outwards</option>
+                    <option value="top">Top to Bottom</option>
+                    <option value="bottom">Bottom to Top</option>
+                </select>
+            </div>
+
+            <div id="PoseEstimationTab" class="_tabcontent">
+                <h2>Pose Estimation</h2>
+                <label for="EnablePoseEstimationCheckbox">Perform Pose Estimation</label>
+                <input type="checkbox" id="EnablePoseEstimationCheckbox" name="EnablePoseEstimationCheckbox" onchange="enablePoseEstimationCheckboxCallback()" />
+                <label for="uploadTargetModel">Upload Target Model</label>
+                <input type="file" id="uploadTargetModel" name="uploadTargetModel" onchange="uploadTargetModelCallback(this.files)">
+                <p id="TargetModelName"></p>
+
+                <h2>Range</h2>
+                <div id="PointRangeFromFrame">
+                    <label for="FromEntry">From</label>
+                    <input type="text" id="FromEntry" class="ThresholdingEntry" name="FromEntry" onchange="fromCallback(this.value)" />
+                    <input type="range" id="FromScale" min="1" value="1" step="1" oninput="fromCallback(this.value)" />
+                </div>
+
+                <div id="PointRangeToFrame">
+                    <label for="ToEntry">To</label>
+                    <input type="text" id="ToEntry" class="ThresholdingEntry" name="ToEntry" onchange="toCallback(this.value)" />
+                    <input type="range" id="ToScale" min="1" value="1" step="1" oninput="toCallback(this.value)" />
+                </div>
+            </div>
+            
+            <div id="PipelineOutput">
+                <img id="Stream" src="{{ url_for('video_feed') }}">
+
+                <div id="ResultsDiv">
+                    <div class="ResultWrapper">
+                        <p id="noTargetLabel">No Target</p>
+                    </div>
+
+                    <div id="txWrapper" class="ResultWrapper">
+                        <p class="resultLabelWrapper" for="tx">tx: </p>
+                        <div class="resultListing" id="tx" name="tx"></div>
+                    </div>
+
+                    <div id="tyWrapper" class="ResultWrapper">
+                        <p class="resultLabelWrapper">ty: </p>
+                        <div class="resultListing" id="ty"></div>
+                    </div>
+
+                    <div id="tlWrapper" class="ResultWrapper">
+                        <p class="resultLabelWrapper">tl: </p>
+                        <div class="resultListing" id="tl"></div>
+                    </div>
+
+                    <div id="translationWrapper" class="ResultWrapper">
+                        <p class="resultLabelWrapper">translation: </p>
+                        <div class="resultListing" id="translation"></div>
+                    </div>
+
+                    <div id="rotationWrapper" class="ResultWrapper">
+                        <p class="resultLabelWrapper">rotation: </p>
+                        <div class="resultListing" id="rotation"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="SettingsTab" class="tabcontent">
+
+            <h1 id="SettingsHeader">Settings</h1>
+
+            <h2 id="TeamNumberHeader" class="SettingsSubHeaders">Team Number</h2>
+            <div id="TeamNumberField">
+                <input id="TeamNumberInput" type="text" minlength="4" maxlength="4" />
+                <button id="ChangeTeamNumberButton" type="button" onclick="updateTeamNumber()">Update</button>
+            </div>
+
+            <h2 id="NetworkingSettingsHeader" class="SettingsSubHeaders">Networking Settings</h2>
+            <div id="NetworkingSettingsField">
+                <div id="IPAddressEntryField">
+                    <p id="IPAddressEntryField">IP Address</p>
+                    <label for="IPAddressAssignmentModeSelection">IP Address Assignment Mode</label>
+                    <select id="IPAddressAssignmentMode" name="IPAddressAssignmentModeSelection" onchange="updateIPAddressAssignmentMode()">
+                        <option value="static">Static</option>
+                        <option value="dynamic">Dynamic</option>
+                    </select>
+                    <input id="IPAddressInput" type="text" />
+                    <button id="ChangeIPAddressButton" type="button" onclick="updateIPAddress()">Update</button>
+                </div>
+
+                <div id="GatewayEntryField">
+                    <p id="GatewayEntryLabel">Gateway</p>
+                    <input id="GatewayInput" type="text" />
+                    <button id="ChangeGatewayButton" type="button" onclick="updateGateway()">Update</button>
+                </div>
+
+                <div id="NetmaskEntryField">
+                    <p id="NetmaskEntryLabel">Netmask</p>
+                    <input id="NetmaskInput" type="text" />
+                    <button id="ChangeNetmaskButton" type="button" onclick="updateNetmask()">Update</button>
+                </div>
+            </div>
+
+            <h2 id="NetworkTablesHeader" class="SettingsSubHeaders">NetworkTables</h2>
+            <input type="checkbox" id="DisableNetworkTablesCheckbox" name="DisableNetworkTablesCheckbox" onclick="updateRunNetworktables()"/>
+            <label for="DisableNetworkTablesCheckbox">Disable NetworkTables</label>
+
+        </div>
+
+        <!-- Bottom Banner -->
+        <div id="BottomBanner"><p id="BottomBannerText">V_0.1</p></div>
+    </div>
+    <script src="{{url_for('static', filename='javascript/script-index.js')}}"></script>
+</body>
+</html>
